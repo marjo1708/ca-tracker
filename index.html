@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="CA Tracker"/>
+  <meta name="theme-color" content="#0e1620"/>
+  <title>CA Tracker — Espèces 12%</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: #0e1620;
+      color: #dceeff;
+      font-family: -apple-system, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 80px;
+      overscroll-behavior: none;
+    }
+    input[type=number] { -moz-appearance: textfield; }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    /* ── Layout ── */
+    #app { max-width: 480px; margin: 0 auto; }
+
+    /* ── Header ── */
+    #header {
+      background: linear-gradient(160deg,#162840 0%,#0e1e30 100%);
+      padding: 22px 20px 18px;
+      border-bottom: 1px solid rgba(91,164,207,0.12);
+    }
+    .eyebrow { font-size: 10px; letter-spacing: 3px; color: #3d7ca8; text-transform: uppercase; margin-bottom: 8px; }
+    .month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .month-nav button {
+      background: rgba(255,255,255,0.06); border: none; border-radius: 10px;
+      color: #5ba4cf; font-size: 22px; width: 40px; height: 40px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .month-name { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+    .month-year { font-size: 13px; color: #3d7ca8; text-align: center; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #4a7a9b; margin-bottom: 5px; letter-spacing: 0.5px; }
+    .progress-bar-bg { background: rgba(255,255,255,0.06); border-radius: 99px; height: 7px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+    .pills { display: flex; gap: 8px; margin-top: 14px; }
+    .pill {
+      flex: 1; background: rgba(255,255,255,0.04); border-radius: 10px;
+      padding: 8px 10px; text-align: center; border: 1px solid transparent;
+    }
+    .pill.accent { border-color: rgba(91,164,207,0.25); }
+    .pill-label { font-size: 9px; color: #2d5570; letter-spacing: 0.5px; margin-bottom: 3px; text-transform: uppercase; }
+    .pill-value { font-size: 11px; font-weight: 700; color: #8ab4d4; }
+    .pill.accent .pill-value { color: #7ecfff; }
+
+    /* ── Tabs ── */
+    #tabs { display: flex; background: #0b1520; border-bottom: 1px solid rgba(91,164,207,0.08); }
+    #tabs button {
+      flex: 1; padding: 11px 0; border: none; cursor: pointer;
+      background: none; font-size: 12px; font-weight: 600; letter-spacing: 0.3px;
+      color: #2d5570; border-bottom: 2px solid transparent; transition: all 0.2s;
+    }
+    #tabs button.active { color: #5ba4cf; border-bottom-color: #5ba4cf; }
+
+    /* ── Views ── */
+    .view { padding: 16px; display: none; }
+    .view.active { display: block; }
+
+    /* ── Day scroller ── */
+    .day-scroll-wrap { overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; }
+    .day-scroll { display: flex; gap: 6px; width: max-content; }
+    .day-btn {
+      width: 36px; height: 44px; border-radius: 10px; border: none; cursor: pointer;
+      background: rgba(255,255,255,0.04); color: #2d5570;
+      font-size: 13px; font-weight: 500; position: relative; transition: all 0.15s;
+      font-family: inherit;
+    }
+    .day-btn.done { background: rgba(91,164,207,0.14); color: #5ba4cf; }
+    .day-btn.active { background: #1a6fa8; color: #fff; font-weight: 800; box-shadow: 0 2px 12px rgba(26,111,168,0.5); }
+    .day-dot {
+      position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 4px; border-radius: 50%; background: #5ba4cf;
+    }
+
+    /* ── Rate badge ── */
+    .rate-badge {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(26,111,168,0.12); border-radius: 12px;
+      border: 1px solid rgba(91,164,207,0.2); padding: 10px 14px; margin-bottom: 14px;
+    }
+    .rate-label { font-size: 11px; color: #3d7ca8; letter-spacing: 1px; text-transform: uppercase; }
+    .rate-value { font-size: 26px; font-weight: 800; color: #7ecfff; letter-spacing: -1px; }
+    .rate-donut {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .rate-donut-inner { width: 36px; height: 36px; border-radius: 50%; background: #0e1620; }
+
+    /* ── Form ── */
+    .field-label {
+      display: block; font-size: 11px; color: #3d7ca8; font-weight: 700;
+      letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;
+    }
+    .field-input {
+      width: 100%; padding: 14px; border-radius: 11px;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05);
+      color: #dceeff; font-size: 18px; outline: none; margin-bottom: 14px;
+      font-family: inherit;
+    }
+
+    /* ── Cards ── */
+    .suggestion-card {
+      background: rgba(255,255,255,0.04); border-radius: 12px;
+      border: 1px solid rgba(91,164,207,0.15); padding: 12px 14px; margin-bottom: 10px;
+    }
+    .suggestion-card.adjust {
+      background: rgba(243,156,18,0.07); border-color: rgba(243,156,18,0.25);
+    }
+    .card-label { font-size: 11px; color: #3d7ca8; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .card-label.adjust-lbl { color: #c28a00; }
+    .card-amount { font-size: 24px; font-weight: 800; color: #7ecfff; }
+    .card-amount.adjust-amt { color: #f5c842; }
+    .card-note { font-size: 11px; color: #8a6a20; margin-top: 4px; margin-bottom: 8px; }
+
+    .save-btn {
+      width: 100%; padding: 11px; border-radius: 9px; border: none;
+      color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 8px;
+      font-family: inherit;
+    }
+    .save-btn.primary { background: linear-gradient(135deg,#1a6fa8,#0d3d5e); }
+    .save-btn.warning { background: linear-gradient(135deg,#7a5800,#4a3500); }
+
+    .delete-btn {
+      width: 100%; padding: 10px; border-radius: 10px;
+      border: 1px solid rgba(231,76,60,0.25); background: transparent;
+      color: #e74c3c; font-size: 13px; cursor: pointer; margin-top: 4px;
+      font-family: inherit;
+    }
+
+    /* ── Projection ── */
+    .projection {
+      margin-top: 16px; background: rgba(91,164,207,0.06); border-radius: 12px;
+      border: 1px solid rgba(91,164,207,0.12); padding: 12px 16px;
+    }
+    .projection-title { font-size: 11px; color: #3d7ca8; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .projection-text { font-size: 13px; color: #8ab4d4; line-height: 1.6; }
+    .projection-text strong { color: #7ecfff; }
+
+    /* ── Recap rows ── */
+    .recap-row {
+      background: rgba(255,255,255,0.03); border-radius: 12px;
+      border: 1px solid rgba(91,164,207,0.08); padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+    }
+    .recap-day-badge {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(91,164,207,0.1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #5ba4cf; flex-shrink: 0;
+    }
+    .recap-info { flex: 1; }
+    .recap-cb { font-size: 13px; color: #b0ccdd; }
+    .recap-cb strong { color: #dceeff; }
+    .recap-esp { font-size: 12px; color: #7ecfff; }
+    .recap-pct { font-size: 16px; font-weight: 800; min-width: 52px; text-align: right; }
+
+    .totals-card {
+      background: rgba(91,164,207,0.08); border-radius: 12px;
+      border: 1px solid rgba(91,164,207,0.25); padding: 16px; margin-top: 8px;
+    }
+    .totals-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .totals-lbl { font-size: 13px; color: #4a7a9b; }
+    .totals-val { font-weight: 700; }
+    .totals-divider { height: 1px; background: rgba(91,164,207,0.15); margin: 10px 0; }
+    .totals-ratio-row { display: flex; justify-content: space-between; align-items: center; }
+    .totals-ratio-lbl { font-size: 13px; color: #4a7a9b; font-weight: 600; }
+    .totals-ratio-val { font-size: 22px; font-weight: 900; }
+    .totals-status {
+      margin-top: 10px; padding: 9px 12px; border-radius: 9px;
+      font-size: 12px; font-weight: 600; text-align: center;
+    }
+    .status-ok { background: rgba(39,174,96,0.15); color: #27ae60; }
+    .status-bad { background: rgba(231,76,60,0.09); color: #e74c3c; }
+
+    /* ── Planning rows ── */
+    .planning-info {
+      background: rgba(91,164,207,0.07); border-radius: 12px;
+      border: 1px solid rgba(91,164,207,0.15); padding: 12px 16px;
+      margin-bottom: 14px; font-size: 13px; color: #4a7a9b; line-height: 1.6;
+    }
+    .planning-info strong { color: #7ecfff; }
+    .plan-row {
+      background: rgba(255,255,255,0.03); border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.05); padding: 10px 14px;
+      cursor: pointer; margin-bottom: 6px; transition: background 0.15s;
+    }
+    .plan-row.done-row { border-color: rgba(91,164,207,0.2); }
+    .plan-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+    .plan-day-lbl { font-size: 13px; color: #4a7a9b; }
+    .plan-day-lbl.done-lbl { color: #5ba4cf; font-weight: 700; }
+    .plan-done-badge { font-size: 10px; color: #27ae60; background: rgba(39,174,96,0.12); padding: 2px 6px; border-radius: 99px; margin-left: 8px; }
+    .plan-rates { display: flex; gap: 10px; align-items: center; }
+    .plan-actual { font-size: 11px; color: #8ab4d4; }
+    .plan-rate { font-size: 14px; font-weight: 700; }
+    .plan-bar-bg { background: rgba(255,255,255,0.05); border-radius: 99px; height: 4px; overflow: hidden; }
+    .plan-bar-fill { height: 100%; border-radius: 99px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: #1e3a5f; color: #7ecfff; border-radius: 20px;
+      padding: 10px 24px; font-size: 14px; font-weight: 600; z-index: 999;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4); border: 1px solid rgba(91,164,207,0.3);
+      display: none; white-space: nowrap;
+    }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; color: #2d5570; padding: 60px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div class="eyebrow">Suivi CA · Espèces</div>
+    <div class="month-nav">
+      <button id="btn-prev">‹</button>
+      <div>
+        <div class="month-name" id="month-name"></div>
+        <div class="month-year" id="month-year"></div>
+      </div>
+      <button id="btn-next">›</button>
+    </div>
+    <div>
+      <div class="progress-label">
+        <span style="letter-spacing:0.5px">ESPÈCES / CB</span>
+        <span id="progress-ratio-lbl"></span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+    <div class="pills">
+      <div class="pill"><div class="pill-label">Total CB</div><div class="pill-value" id="pill-cb">—</div></div>
+      <div class="pill accent"><div class="pill-label">Espèces</div><div class="pill-value" id="pill-esp">—</div></div>
+      <div class="pill"><div class="pill-label">Objectif 12 %</div><div class="pill-value" id="pill-target">—</div></div>
+    </div>
+  </div>
+
+  <div id="tabs">
+    <button class="active" data-view="saisie">📝 Saisie</button>
+    <button data-view="recap">📊 Récap</button>
+    <button data-view="planning">📅 Planning</button>
+  </div>
+
+  <!-- SAISIE -->
+  <div class="view active" id="view-saisie">
+    <div class="day-scroll-wrap"><div class="day-scroll" id="day-scroll"></div></div>
+    <div class="rate-badge">
+      <div>
+        <div class="rate-label" id="rate-label">Taux du jour</div>
+        <div class="rate-value" id="rate-value">—</div>
+      </div>
+      <div class="rate-donut" id="rate-donut">
+        <div class="rate-donut-inner"></div>
+      </div>
+    </div>
+    <label class="field-label">CA en Carte Bancaire (€)</label>
+    <input class="field-input" type="number" inputmode="decimal" placeholder="Ex : 2 500" id="input-cb"/>
+    <div id="suggestion-area"></div>
+    <button class="delete-btn" id="btn-delete" style="display:none">Supprimer ce jour</button>
+    <div class="projection" id="projection" style="display:none">
+      <div class="projection-title">💡 PROJECTION FIN DE MOIS</div>
+      <div class="projection-text" id="projection-text"></div>
+    </div>
+  </div>
+
+  <!-- RECAP -->
+  <div class="view" id="view-recap">
+    <div id="recap-content"></div>
+  </div>
+
+  <!-- PLANNING -->
+  <div class="view" id="view-planning">
+    <div class="planning-info" id="planning-info"></div>
+    <div id="planning-rows"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────────────────────
+const TARGET = 0.12;
+const MONTHS = ["Janvier","Février","Mars","Avril","Mai","Juin",
+                "Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let year, month, activeDay, data = {}, currentView = "saisie";
+
+function init() {
+  const t = new Date();
+  year = t.getFullYear(); month = t.getMonth(); activeDay = t.getDate();
+  const saved = localStorage.getItem("ca_tracker_v2");
+  if (saved) { try { data = JSON.parse(saved); } catch(e){} }
+  bindEvents();
+  render();
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function daysInMonth(y, m) { return new Date(y, m+1, 0).getDate(); }
+function monthKey() { return `${year}-${String(month+1).padStart(2,"0")}`; }
+function monthData() { return data[monthKey()] || {}; }
+
+function fEuro(v) {
+  if (v === null || v === undefined || isNaN(Number(v))) return "—";
+  return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(v);
+}
+function fPct(v) {
+  if (v === null || v === undefined || isNaN(v)) return "—";
+  return `${(v*100).toFixed(1)} %`;
+}
+
+function generateRates(y, m) {
+  const n = daysInMonth(y, m), MIN = 0.05, MAX = 0.22;
+  let seed = y*31 + m*7 + 13;
+  function rand() { seed = (seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+  const raw = Array.from({length:n}, ()=>rand());
+  const rawMean = raw.reduce((a,b)=>a+b,0)/n;
+  let rates = raw.map(r=>(r/rawMean)*TARGET);
+  rates = rates.map(r=>Math.max(MIN,Math.min(MAX,r)));
+  const sum = rates.reduce((a,b)=>a+b,0);
+  return rates.map(r=>r*(n*TARGET/sum));
+}
+
+function saveData(newData) { data = newData; localStorage.setItem("ca_tracker_v2", JSON.stringify(data)); }
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.style.display = "block";
+  setTimeout(()=>{ t.style.display="none"; }, 1800);
+}
+
+function pctColor(v) {
+  return v<0.09?"#e74c3c":v<0.115?"#f39c12":v>0.135?"#e67e22":"#27ae60";
+}
+
+// ─── Derived stats ────────────────────────────────────────────────────────────
+function stats() {
+  const md = monthData();
+  const totalCB = Object.values(md).reduce((s,d)=>s+(Number(d.cb)||0),0);
+  const totalEsp = Object.values(md).reduce((s,d)=>s+(Number(d.especes)||0),0);
+  const targetEsp = totalCB * TARGET;
+  const ratio = totalCB > 0 ? totalEsp/totalCB : 0;
+  const n = daysInMonth(year, month);
+  const enteredDays = Object.keys(md).map(Number).filter(d=>md[d]?.cb);
+  const remainingDays = Array.from({length:n},(_,i)=>i+1).filter(d=>!enteredDays.includes(d));
+  return {totalCB, totalEsp, targetEsp, ratio, enteredDays, remainingDays};
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  renderHeader();
+  if (currentView==="saisie") renderSaisie();
+  else if (currentView==="recap") renderRecap();
+  else renderPlanning();
+}
+
+function renderHeader() {
+  const {totalCB, totalEsp, targetEsp, ratio} = stats();
+  document.getElementById("month-name").textContent = MONTHS[month];
+  document.getElementById("month-year").textContent = year;
+  const col = pctColor(ratio);
+  const pct = Math.min(100,(ratio/TARGET)*100);
+  document.getElementById("progress-ratio-lbl").innerHTML =
+    `<span style="color:${col};font-weight:700">${fPct(ratio)}</span> <span style="color:#4a7a9b">/ cible 12 %</span>`;
+  const fill = document.getElementById("progress-fill");
+  fill.style.width = pct+"%";
+  fill.style.background = `linear-gradient(90deg,${col}aa,${col})`;
+  document.getElementById("pill-cb").textContent = fEuro(totalCB);
+  document.getElementById("pill-esp").textContent = fEuro(totalEsp);
+  document.getElementById("pill-target").textContent = fEuro(targetEsp);
+}
+
+function renderSaisie() {
+  const rates = generateRates(year, month);
+  const md = monthData();
+  const n = daysInMonth(year, month);
+  const {totalCB, totalEsp, targetEsp, enteredDays, remainingDays} = stats();
+
+  // Day scroller
+  const scroll = document.getElementById("day-scroll");
+  scroll.innerHTML = "";
+  for (let d=1; d<=n; d++) {
+    const done = !!md[d]?.cb;
+    const active = d===activeDay;
+    const btn = document.createElement("button");
+    btn.className = "day-btn"+(active?" active":done?" done":"");
+    btn.textContent = d;
+    if (done && !active) { const dot=document.createElement("div"); dot.className="day-dot"; btn.appendChild(dot); }
+    btn.addEventListener("click", ()=>{ activeDay=d; render(); });
+    scroll.appendChild(btn);
+  }
+
+  // Rate badge
+  const rate = rates[activeDay-1];
+  document.getElementById("rate-label").textContent = `Taux espèces du jour ${activeDay}`;
+  document.getElementById("rate-value").textContent = fPct(rate);
+  const deg = Math.round((rate/0.22)*360);
+  document.getElementById("rate-donut").style.background =
+    `conic-gradient(#1a6fa8 ${deg}deg, rgba(255,255,255,0.06) 0deg)`;
+
+  // Input
+  const inp = document.getElementById("input-cb");
+  if (md[activeDay]?.cb) inp.value = md[activeDay].cb; else inp.value = "";
+
+  // Delete btn
+  const delBtn = document.getElementById("btn-delete");
+  delBtn.style.display = md[activeDay]?.cb ? "block" : "none";
+  delBtn.onclick = ()=>{
+    const nmd = {...monthData()}; delete nmd[activeDay];
+    saveData({...data,[monthKey()]:nmd}); render();
+  };
+
+  // Suggestion
+  updateSuggestion();
+
+  // Projection
+  updateProjection();
+}
+
+function getCbVal() { return parseFloat(document.getElementById("input-cb").value)||0; }
+
+function updateSuggestion() {
+  const rates = generateRates(year, month);
+  const md = monthData();
+  const cbVal = getCbVal();
+  const rate = rates[activeDay-1];
+  const suggestedEsp = Math.round(cbVal*rate*100)/100;
+  const area = document.getElementById("suggestion-area");
+
+  if (cbVal <= 0) { area.innerHTML=""; return; }
+
+  // Adjusted
+  const {enteredDays} = stats();
+  const sumCBOthers = enteredDays.filter(d=>d!==activeDay).reduce((s,d)=>s+(Number(md[d].cb)||0),0);
+  const sumEspOthers = enteredDays.filter(d=>d!==activeDay).reduce((s,d)=>s+(Number(md[d].especes)||0),0);
+  const needed = TARGET*(sumCBOthers+cbVal)-sumEspOthers;
+  const adjustedEsp = Math.round(Math.max(0.05*cbVal,Math.min(0.22*cbVal,needed))*100)/100;
+  const showAdjusted = Math.abs(adjustedEsp-suggestedEsp)>0.5;
+
+  let html = `
+    <div class="suggestion-card">
+      <div class="card-label">ESPÈCES SUGGÉRÉES · TAUX DU JOUR (${fPct(rate)})</div>
+      <div class="card-amount">${fEuro(suggestedEsp)}</div>
+      <button class="save-btn primary" id="btn-save-suggested">Enregistrer avec ce montant</button>
+    </div>`;
+
+  if (showAdjusted) {
+    const adjRate = adjustedEsp/cbVal;
+    html += `
+      <div class="suggestion-card adjust">
+        <div class="card-label adjust-lbl">⚖️ AJUSTEMENT CORRECTIF · ${fPct(adjRate)}</div>
+        <div class="card-amount adjust-amt">${fEuro(adjustedEsp)}</div>
+        <div class="card-note">Recommandé pour rester sur la trajectoire 12 %</div>
+        <button class="save-btn warning" id="btn-save-adjusted">Enregistrer avec l'ajustement</button>
+      </div>`;
+  }
+
+  area.innerHTML = html;
+
+  document.getElementById("btn-save-suggested").addEventListener("click", ()=>doSave(cbVal, suggestedEsp));
+  if (showAdjusted) {
+    document.getElementById("btn-save-adjusted").addEventListener("click", ()=>doSave(cbVal, adjustedEsp));
+  }
+}
+
+function doSave(cb, esp) {
+  if (!cb || cb<=0) return;
+  const n = daysInMonth(year,month);
+  saveData({...data,[monthKey()]:{...monthData(),[activeDay]:{cb,especes:esp,rate:esp/cb}}});
+  showToast("✅ Enregistré");
+  if (activeDay < n) activeDay++;
+  render();
+}
+
+function updateProjection() {
+  const {totalCB, totalEsp, targetEsp, remainingDays} = stats();
+  const proj = document.getElementById("projection");
+  const txt = document.getElementById("projection-text");
+  if (totalCB<=0) { proj.style.display="none"; return; }
+  proj.style.display="block";
+  const diff = targetEsp-totalEsp;
+  if (Math.abs(diff)<1) {
+    txt.innerHTML='<span style="color:#27ae60">✅ Objectif 12 % atteint !</span>';
+  } else if (diff>0) {
+    txt.innerHTML=`Il manque <strong>${fEuro(diff)}</strong> d'espèces`+
+      (remainingDays.length>0?` sur <strong>${remainingDays.length}</strong> jour${remainingDays.length>1?"s":""} restant${remainingDays.length>1?"s":""}`:"")+`.`;
+  } else {
+    txt.innerHTML=`<span style="color:#f39c12">Excédent de <strong>${fEuro(-diff)}</strong> par rapport à l'objectif.</span>`;
+  }
+}
+
+function renderRecap() {
+  const md = monthData();
+  const {totalCB, totalEsp, targetEsp, ratio, enteredDays} = stats();
+  const n = daysInMonth(year,month);
+  const content = document.getElementById("recap-content");
+
+  if (enteredDays.length===0) {
+    content.innerHTML='<div class="empty">Aucune donnée pour ce mois.</div>'; return;
+  }
+
+  let html="";
+  Array.from({length:n},(_,i)=>i+1).filter(d=>md[d]?.cb).forEach(d=>{
+    const {cb,especes} = md[d];
+    const pct = Number(cb)>0?Number(especes)/Number(cb):0;
+    const col = pct<0.08?"#e74c3c":pct>0.18?"#f39c12":"#27ae60";
+    html+=`<div class="recap-row">
+      <div class="recap-day-badge">${d}</div>
+      <div class="recap-info">
+        <div class="recap-cb">CB : <strong>${fEuro(Number(cb))}</strong></div>
+        <div class="recap-esp">Espèces : ${fEuro(Number(especes))}</div>
+      </div>
+      <div class="recap-pct" style="color:${col}">${fPct(pct)}</div>
+    </div>`;
+  });
+
+  const col = pctColor(ratio);
+  const isOk = Math.abs(ratio-TARGET)<0.005;
+  const statusClass = isOk?"status-ok":"status-bad";
+  const statusMsg = isOk ? "✅ Objectif 12 % atteint !"
+    : totalEsp<targetEsp ? `⚠️ Manque ${fEuro(targetEsp-totalEsp)} pour 12 %`
+    : `⚠️ Excédent de ${fEuro(totalEsp-targetEsp)}`;
+
+  html+=`<div class="totals-card">
+    <div class="totals-row"><span class="totals-lbl">Total CB</span><span class="totals-val" style="color:#dceeff">${fEuro(totalCB)}</span></div>
+    <div class="totals-row"><span class="totals-lbl">Total Espèces</span><span class="totals-val" style="color:#7ecfff">${fEuro(totalEsp)}</span></div>
+    <div class="totals-row"><span class="totals-lbl">Objectif 12 %</span><span class="totals-val" style="color:#8ab4d4">${fEuro(targetEsp)}</span></div>
+    <div class="totals-divider"></div>
+    <div class="totals-ratio-row">
+      <span class="totals-ratio-lbl">Ratio actuel</span>
+      <span class="totals-ratio-val" style="color:${col}">${fPct(ratio)}</span>
+    </div>
+    <div class="totals-status ${statusClass}">${statusMsg}</div>
+  </div>`;
+
+  content.innerHTML = html;
+}
+
+function renderPlanning() {
+  const rates = generateRates(year, month);
+  const md = monthData();
+  const n = daysInMonth(year,month);
+
+  document.getElementById("planning-info").innerHTML =
+    `Planning des taux d'espèces pour ${MONTHS[month]} ${year}. La moyenne de ces taux est <strong>12 %</strong> sur le mois.`;
+
+  let html="";
+  for (let d=1; d<=n; d++) {
+    const rate = rates[d-1];
+    const done = !!md[d]?.cb;
+    const actual = done ? md[d].especes/md[d].cb : null;
+    const barW = Math.round((rate/0.22)*100);
+    const col = rate<0.09?"#e74c3c":rate>0.16?"#f39c12":"#27ae60";
+    html+=`<div class="plan-row ${done?"done-row":""}" data-day="${d}">
+      <div class="plan-row-top">
+        <div>
+          <span class="plan-day-lbl ${done?"done-lbl":""}">Jour ${d}</span>
+          ${done?'<span class="plan-done-badge">✓</span>':""}
+        </div>
+        <div class="plan-rates">
+          ${actual!==null?`<span class="plan-actual">${fPct(actual)} réel</span>`:""}
+          <span class="plan-rate" style="color:${col}">${fPct(rate)}</span>
+        </div>
+      </div>
+      <div class="plan-bar-bg">
+        <div class="plan-bar-fill" style="width:${barW}%;background:linear-gradient(90deg,${col}88,${col})"></div>
+      </div>
+    </div>`;
+  }
+  document.getElementById("planning-rows").innerHTML = html;
+
+  document.querySelectorAll(".plan-row").forEach(row=>{
+    row.addEventListener("click",()=>{
+      activeDay=parseInt(row.dataset.day);
+      currentView="saisie";
+      document.querySelectorAll("#tabs button").forEach(b=>b.classList.remove("active"));
+      document.querySelector('#tabs button[data-view="saisie"]').classList.add("active");
+      document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+      document.getElementById("view-saisie").classList.add("active");
+      render();
+    });
+  });
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+function bindEvents() {
+  document.getElementById("btn-prev").addEventListener("click",()=>{
+    if (month===0){month=11;year--;} else month--;
+    activeDay=1; render();
+  });
+  document.getElementById("btn-next").addEventListener("click",()=>{
+    if (month===11){month=0;year++;} else month++;
+    activeDay=1; render();
+  });
+
+  document.querySelectorAll("#tabs button").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      currentView=btn.dataset.view;
+      document.querySelectorAll("#tabs button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+      document.getElementById("view-"+currentView).classList.add("active");
+      render();
+    });
+  });
+
+  document.getElementById("input-cb").addEventListener("input",()=>{
+    updateSuggestion();
+    updateProjection();
+    renderHeader();
+  });
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
